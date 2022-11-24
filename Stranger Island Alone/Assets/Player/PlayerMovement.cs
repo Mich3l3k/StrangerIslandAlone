@@ -5,10 +5,10 @@ using Unity.VisualScripting;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(CharacterController))]
 
-public class PlayerController : MonoBehaviour
+public class PlayerMovement : MonoBehaviour
 {
-    
     public float playerSpeed;
     public float sprintBonus;
     public float snickBonus;
@@ -19,11 +19,13 @@ public class PlayerController : MonoBehaviour
 
     private bool groundedPlayer;
     private Rigidbody rb;
+    private CharacterController characterController;
 
     // Start is called before the first frame update
     void Start()
     {
         rb = gameObject.GetComponent<Rigidbody>();
+        characterController = gameObject.GetComponent<CharacterController>();
 
         baseSprintBonus = sprintBonus;
         baseSnickBonus = snickBonus;
@@ -63,7 +65,9 @@ public class PlayerController : MonoBehaviour
 
 
         if (move != Vector3.zero)
-            rb.velocity = (move * Time.deltaTime * playerSpeed * sprintBonus * snickBonus);
-
+        {
+            //rb.velocity = (move * Time.deltaTime * playerSpeed * sprintBonus * snickBonus);
+            characterController.Move(move);
+        }
     }
 }
