@@ -1,73 +1,122 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody))]
-[RequireComponent(typeof(CharacterController))]
 
 public class PlayerMovement : MonoBehaviour
 {
-    public float playerSpeed;
-    public float sprintBonus;
-    public float snickBonus;
-    public float jumpHeight;
+    Rigidbody rb;
+    float vertical;
+    float horizontal;
 
-    float baseSprintBonus;
-    float baseSnickBonus;
+    [Header("Movement")]
+    public float moveSpeed = 0.2f;
+    public float walkSpeed;
+    public float sprintSpeed;
 
-    private bool groundedPlayer;
-    private Rigidbody rb;
-    private CharacterController characterController;
+    [Header("Snicking")]
+    public float snickingSpeed;
+    public float snickingYScale;
+    private float startYScale;
 
-    // Start is called before the first frame update
+    [Header("Jump")]
+    public float JumpForce = 1500f;
+
+    public MovementState state;
+    public enum MovementState
+    {
+        walking, sprinting, air, snicking
+    }
     void Start()
     {
-        rb = gameObject.GetComponent<Rigidbody>();
-        characterController = gameObject.GetComponent<CharacterController>();
-
-        baseSprintBonus = sprintBonus;
-        baseSnickBonus = snickBonus;
+        rb = GetComponent<Rigidbody>();
+        startYScale = transform.localScale.y;
     }
 
-    // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
-        /*groundedPlayer = controller.isGrounded;
-        if (groundedPlayer && playerVelocity.y < 0)
-        {
-            playerVelocity.y = 0f
+        vertical = Input.GetAxis("Vertical");
+        horizontal = Input.GetAxis("Horizontal");
 
-        
-        if (Input.GetButtonDown("Jump") && groundedPlayer)
+        if (vertical != 0 || horizontal != 0)
+            movePlayer();
+        SnickingMove();
+    }
+    
+    private void Update()
+    {
+        if (Input.GetButtonDown("Jump"))
+            if (isGrounded())
+            {
+                rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
+                rb.AddForce(transform.up * JumpForce, ForceMode.Impulse);
+            }
+        stateHandler();
+    }
+    void stateHandler()
+    {
+        // Mode - Snicking
+        if(isGrounded() && Input.GetKey(KeyCode.LeftControl))
         {
-            playerVelocity.y += Mathf.Sqrt(jumpHeight * -3.0f * Physics.gravity.y);
+            state = MovementState.snicking;
+            moveSpeed = snickingSpeed;
+        }
+        // Mode - Sprinting
+        else if(isGrounded() && Input.GetKey(KeyCode.LeftShift))
+        {
+            state = MovementState.sprinting;
+            moveSpeed = sprintSpeed;
         }
 
-        playerVelocity.y += Physics.gravity.y * Time.deltaTime;
-        controller.Move(playerVelocity * Time.deltaTime);*/
-    }
-
-    private void FixedUpdate()
-    {
-        Vector3 move = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
-
-        if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
-            sprintBonus = baseSprintBonus;
-        else
-            sprintBonus = 1;
-
-        if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
-            snickBonus = baseSnickBonus;
-        else
-            snickBonus = 1;
-
-
-        if (move != Vector3.zero)
+        // Mode - Walking
+        else if (isGrounded())
         {
-            //rb.velocity = (move * Time.deltaTime * playerSpeed * sprintBonus * snickBonus);
-            characterController.Move(move);
+            state = MovementState.walking;
+            moveSpeed = walkSpeed;
+        }
+
+        // Mode - Air
+        else
+        {
+            state = MovementState.air;
         }
     }
+
+    void movePlayer()
+    {
+        rb.AddForce((transform.forward * vertical + transform.right * horizontal)
+                 * moveSpeed * 100f, ForceMode.Force);
+        SpeedControl();
+    }
+
+    bool isGrounded()
+    {
+        if (Physics.Raycast(transform.position, Vector3.down, 1.2f))
+            return true;
+        return false;
+    }
+
+    void SpeedControl()
+    {
+        Vector3 flatVelocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+        if(flatVelocity.magnitude > moveSpeed)
+        {
+            Vector3 limittedVelocity = flatVelocity.normalized * moveSpeed;
+            rb.velocity = new Vector3(limittedVelocity.x, rb.velocity.y, limittedVelocity.y);
+        }
+    }
+
+    void SnickingMove()
+    {
+        if (Input.GetKey(KeyCode.LeftControl))
+        {
+            transform.localScale = new Vector3(transform.localScale.x, snickingYScale, transform.localScale.z);
+            rb.AddForce(Vector3.down * 5f, ForceMode.Impulse);
+        }
+        else
+        {
+            transform.localScale = new Vector3(transform.localScale.x, startYScale, transform.localScale.z);
+        }
+    }       
 }

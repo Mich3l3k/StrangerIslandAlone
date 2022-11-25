@@ -9,7 +9,8 @@ public class CameraRotation : MonoBehaviour
 {
     GameObject player;
 
-    bool lockedCursor = true;
+    //[SerializeField]
+    //bool lockedCursor = true;
     
     float cameraVertical;
     float xRotation;
